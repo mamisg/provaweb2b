@@ -1,291 +1,216 @@
-function formatarData(data) {
-    let dataBr = data.toLocaleDateString('pt-BR').split('/')
-    let dia = parseInt(dataBr[0]) + 1
-    let mes = parseInt(dataBr[1])
-    let ano = parseInt(dataBr[2])
+const buttonFiltros = document.getElementById('nav-bar');
+const filtroQuantidade = document.getElementById('filtro-quantidade');
+const filtroTipo = document.getElementById('filtro-tipo');
+const dateDe = document.getElementById('filtro-de');
+const dateAte = document.getElementById('filtro-ate');
+const inputBusca = document.getElementById('textBusca');
 
-    if (dia == 32) {
-        dia = 1
-        mes++
-    }
-    if (mes == 13) {
-        mes = 1
-        ano++
-    }
-    dia = dia.toString()
-    mes = mes.toString()
+const paginacao = document.getElementById('paginacao-ul');
 
-    if (dia.length == 1) {
-        dia = '0' + dia
-    }
-    if (mes.length == 1) {
-        mes = '0' + mes
-    }
+const modal = document.querySelector('dialog');
+const buttonCloseDialog = document.getElementById('closeDialog');
 
-    let dataFormatada = mes + '-' + dia + '-' + ano
-    return dataFormatada
+buttonFiltros.onclick = function() {
+    modal.showModal();
+};
+
+buttonCloseDialog.onclick = function() {
+    modal.close();
+};
+
+function aplicarFilros(event) {
+    event.preventDefault();
+
+    const filtroQuantidade = document.getElementById('filtro-quantidade').value;
+    const filtroTipo = document.getElementById('filtro-tipo').value;
+    const dateDe = document.getElementById('filtro-de').value;
+    const dateAte = document.getElementById('filtro-ate').value;
+    const inputBusca = document.getElementById('textBusca').value;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('qtd', filtroQuantidade);
+    url.searchParams.set('tipo', filtroTipo);
+    url.searchParams.set('de', dateDe);
+    url.searchParams.set('ate', dateAte);
+    url.searchParams.set('busca', inputBusca);
+
+    window.history.replaceState({}, '', url);
+    contarFiltrosAtivos();
+    logNoticias();
+
+    modal.close();
 }
 
-function atualizarFiltros(pagina) {
-    removerListas()
+async function logNoticias() {
+    const url = new URL('https://servicodados.ibge.gov.br/api/v3/noticias');
+    url.search = window.location.search;
 
-    let cont = 0
+    try {
+        const response = await fetch(url.toString());
+        const noticias = await response.json();
+        displayNoticias(noticias.items);
+        addPages(noticias.totalPages, noticias.page);
+    } catch (error) {
+        console.error('Erro ao buscar notícias:', error);
+    }
+}
 
-    let tipo = document.querySelector('#tipo')
-    let qtd = document.querySelector('#qtd')
-    let de = document.querySelector('#de')
-    let ate = document.querySelector('#até')
-    let busca = document.querySelector('#barraDePesquisa')
+function calcularTempoDecorrido(dataPublicacao) {
+    const dataPublicacaoObj = new Date(dataPublicacao);
+    const agora = new Date();
+    const diffEmMilissegundos = agora - dataPublicacaoObj;
+    const diffEmDias = Math.floor(diffEmMilissegundos / (1000 * 60 * 60 * 24));
 
-    const url = new URL(window.location)
-    url.searchParams.delete('busca');
-    url.searchParams.delete('tipo');
-    url.searchParams.delete('de');
-    url.searchParams.delete('ate');
-    url.searchParams.delete('page');
-    url.searchParams.set('qtd', qtd.value)
+    if (diffEmDias === 0) {
+        return 'Publicado hoje';
+    } else if (diffEmDias === 1) {
+        return 'Publicado ontem';
+    } else {
+        return `Publicado há ${diffEmDias} dias`;
+    }
+}
 
-    if (tipo.value != '') {
-        url.searchParams.set('tipo', tipo.value)
-        cont++
+const dataPublicacao = '2024-06-15T12:00:00Z';
+const tempoDecorrido = calcularTempoDecorrido(dataPublicacao);
+console.log(tempoDecorrido);
+
+function filtros() {
+    const url = new URL(window.location);
+    inputBusca.value = url.searchParams.get('busca') ?? '';
+    filtroTipo.value = url.searchParams.get('tipo') ?? '';
+    filtroQuantidade.value = url.searchParams.get('qtd') ?? '10';
+    dateDe.value = url.searchParams.get('de') ?? '';
+    dateAte.value = url.searchParams.get('ate') ?? '';
+    url.searchParams.set('qtd', filtroQuantidade.value);
+    url.searchParams.set('page', url.searchParams.get('page') ?? '1');
+    window.history.replaceState({}, '', url);
+}
+
+function displayNoticias(noticias) {
+    const novaNoticia = document.getElementById('noticias-ul');
+    novaNoticia.innerHTML = '';
+
+    noticias.forEach(noticia => {
+        const noticias_li = document.createElement('li');
+        noticias_li.classList.add('noticia-li');
+
+        const noticiaImage = document.createElement('img');
+        const urlImagem = JSON.parse(noticia.imagens).image_intro;
+        noticiaImage.src = `https://agenciadenoticias.ibge.gov.br/${urlImagem}`;
+        noticiaImage.alt = noticia.titulo;
+
+        const divConteudo = document.createElement('div');
+        divConteudo.classList.add('conteudo');
+
+        const divConteudoSecundario = document.createElement('div');
+        divConteudoSecundario.classList.add('subConteudo');
+
+        const divEditora = document.createElement('div');
+        divEditora.classList.add('editoras');
+
+        const divPublic = document.createElement('div');
+        divPublic.classList.add('public');
+
+        const noticiaTitulo = document.createElement('h2');
+        noticiaTitulo.textContent = noticia.titulo;
+
+        const introducaoNoticia = document.createElement('p');
+        introducaoNoticia.textContent = noticia.introducao;
+
+        const dataPublicacao = document.createElement('p');
+        const tempoDecorrido = calcularTempoDecorrido(noticia.data_publicacao);
+        dataPublicacao.innerHTML = `<strong>${tempoDecorrido}</strong>`;
+
+        const editorasAplicadas = document.createElement('p');
+        editorasAplicadas.innerHTML = `<strong>#${noticia.editorias}</strong>`;
+
+        const saibaMais = document.createElement('button');
+        saibaMais.textContent = 'Saiba mais';
+        saibaMais.onclick = () => window.open(noticia.link, '_blank');
+
+        divPublic.appendChild(dataPublicacao);
+        divEditora.appendChild(editorasAplicadas);
+
+        divConteudoSecundario.appendChild(divEditora);
+        divConteudoSecundario.appendChild(divPublic);
+
+        divConteudo.appendChild(noticiaTitulo);
+        divConteudo.appendChild(introducaoNoticia);
+        divConteudo.appendChild(divConteudoSecundario);
+        divConteudo.appendChild(saibaMais);
+
+        noticias_li.appendChild(noticiaImage);
+        noticias_li.appendChild(divConteudo);
+        novaNoticia.appendChild(noticias_li);
+    });
+}
+
+function addPages(totalPages, pageAtual) {
+    let pages = '';
+    let i = 1;
+
+    if (pageAtual >= 7 && totalPages > 10) {
+        i = pageAtual - 5;
     }
-    if (qtd.value != 10) {
-        cont++
+    if (pageAtual >= totalPages - 4 && totalPages > 10) {
+        i = totalPages - 9;
     }
-    if (de.value != '') {
-        let data = new Date(de.value)
-        data = formatarData(data)
-        url.searchParams.set('de', data)
-        cont++
+    const pageFim = i + 9;
+    while (i <= pageFim && i !== totalPages + 1) {
+        pages += criarPagina(i);
+        i++;
     }
-    if (ate.value != '') {
-        let data = new Date(ate.value)
-        data = formatarData(data)
-        url.searchParams.set('ate', data)
-        cont++
-    }
-    if (pagina != '') {
-        url.searchParams.set('page', pagina)
-    }
-    if (busca.value != '') {
-        url.searchParams.set('busca', busca.value)
-    }
-    document.querySelector('#spanFiltro').textContent = `${cont}`
+    paginacao.innerHTML = pages;
+}
+
+function criarPagina(index) {
+    const url = new URL(window.location);
+    const isAtiva = url.searchParams.get('page') === index.toString();
+    return `
+        <li>
+            <button 
+                class="${isAtiva ? 'pagina-ativa' : 'pagina'} width100 pointer" 
+                type="button" 
+                onclick="changePage(this)">${index}</button>
+        </li>
+    `;
+}
+
+function changePage(element) {
+    const url = new URL(window.location);
+    url.searchParams.set('page', element.textContent);
     window.history.pushState({}, '', url);
-
-    carregarNoticias()
+    
+    logNoticias();
 }
 
-function carregarNoticias() {
+function realizarBusca(event) {
+    event.preventDefault();
 
-    const url = new URL(window.location)
-    let queryString = url.search
-    console.log(queryString, queryString)
-    let link = 'https://servicodados.ibge.gov.br/api/v3/noticias/'
+    const termoBusca = document.getElementById('textBusca').value.trim();
 
-    fetch(link + queryString)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Erro na requisição: ' + response.status);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Página do retorno do fetch: ' + data.page)
-            console.log(data)
-            adicionarPaginacao(data.page, data.totalPages)
-            data.items.forEach(item => {
-                let li = document.createElement('li')
-                li.id = item.id
+    const url = new URL(window.location.href);
+    url.searchParams.set('busca', termoBusca);
+    window.history.replaceState({}, '', url);
 
-                let img = document.createElement('img')
-                let imagens = JSON.parse(item.imagens)
-                img.src = 'https://agenciadenoticias.ibge.gov.br/' + imagens.image_intro
-                li.appendChild(img)
-
-                let div = document.createElement('div')
-                let h2 = document.createElement('h2')
-                h2.innerText = item.titulo
-                div.appendChild(h2)
-                let p = document.createElement('p')
-                p.classList.add('introducao')
-                p.innerText = item.introducao
-                div.appendChild(p)
-                let divInfoAdicional = document.createElement('div')
-                p = document.createElement('p')
-                p.innerText = '#' + item.editorias
-                divInfoAdicional.appendChild(p)
-                p = document.createElement('p')
-                p.innerText = 'Publicado ' + calcularDiferenca(item.data_publicacao)
-                p.classList.add('data')
-                divInfoAdicional.appendChild(p)
-                divInfoAdicional.classList.add('infoAdicional')
-                div.appendChild(divInfoAdicional)
-                let button = document.createElement('button')
-                button.innerText = 'Leia mais'
-                button.classList.add('botaoLeiaMais')
-                button.addEventListener('click', function () {
-                    window.open(item.link, '_blank')
-                })
-                div.appendChild(button)
-
-                li.appendChild(div)
-
-                let lista = document.querySelector('#listaDeNoticias')
-                if (lista == null) {
-                    lista = document.createElement('ul')
-                    lista.id = 'listaDeNoticias'
-                    document.querySelector('#conteúdo').appendChild(lista)
-                }
-                lista.appendChild(li)
-                let hr = document.createElement('hr')
-                lista.appendChild(hr)
-            })
-        })
-        .catch(error => console.error('Erro:', error));
+    logNoticias();
 }
 
-function calcularDiferenca(dataPublicacao) {
+function contarFiltrosAtivos() {
+    const urlParams = new URLSearchParams(window.location.search);
+    let count = 0;
 
-    let dataRecebida = new Date(dataPublicacao)
-    let dataAtual = new Date()
-    let diferenca = dataAtual - dataRecebida
-    let dias = Math.floor(diferenca / (1000 * 60 * 60 * 24)) // um dia em milisegundos
-
-    dias = Math.abs(dias)
-    anos = Math.floor(dias/365)
-    meses = Math.floor(dias%365/30)
-
-    let stringDiferenca = ''
-
-    if (anos >= 1) { // faz mais de 1 ano
-        if (anos >= 2) {
-            stringDiferenca = 'há ' + anos + ' anos'
-        }
-        else {
-            stringDiferenca = 'há 1 ano'
-        }
-        if (meses >= 1) {
-            if (meses >= 2) {
-                stringDiferenca += ' e ' + meses + ' meses'
-            }
-            else {
-                stringDiferenca += ' e 1 mês'
-            }
-        }
-    }
-    else if (meses >= 1) { // faz mais de 1 mês
-        if (meses >= 2) {
-            stringDiferenca = 'há ' + meses + ' meses'
-        }
-        else {
-            stringDiferenca = 'há 1 mês'
-        }
-
-        if (dias%365%30 >= 1) { // se não estiver em um 'mêsversário' mostra também os dias
-            if (dias%365%30 >= 2) {
-                stringDiferenca += ' e ' + (dias%365%30) + ' dias'
-            }
-            else {
-                stringDiferenca += ' e 1 dia'
-            }
-        }
-    }
-    else { // faz menos de 1 mês
-        if (dias >= 1) {
-            if (dias >= 3) {
-                stringDiferenca += 'há ' + dias + ' dias'
-            }
-            else if (dias == 2) {
-                stringDiferenca += 'anteontem'
-            }
-            else {
-                stringDiferenca += 'ontem'
-            }
-        }
-        else {
-            stringDiferenca += 'hoje'
+    for (const param of urlParams.keys()) {
+        if (param !== 'page' && param !== 'busca') {
+            count++;
         }
     }
 
-    return stringDiferenca
+    document.getElementById('qntdFiltros').textContent = count;
 }
 
-function adicionarPaginacao(pagina, totalDePaginas) {
-    let ul = document.querySelector('#listaDePaginas')
-
-    if (ul == null) {
-        ul = document.createElement('ul')
-        ul.id = 'listaDePaginas'
-        document.querySelector('#paginacao').appendChild(ul)
-    }
-
-    let aux = pagina - 5 //
-    if (aux < 1) {
-        aux = 1
-    }
-
-    let li = document.createElement('li')
-    let button = document.createElement('button')
-    if (pagina != 1) {
-        button.addEventListener('click', () => {
-            atualizarFiltros(pagina - 1)
-        })
-    }
-    button.innerText = '<'
-    button.classList.add('setas')
-    li.appendChild(button)
-    ul.appendChild(li)
-
-    for (let index = 1; index <= 10 && aux <= totalDePaginas; index++) {
-        li = document.createElement('li')
-        button = document.createElement('button')
-        button.innerText = aux
-        if (button.innerText == pagina) {
-            let paginaAtual = document.querySelector('#paginaAtual')
-            if(paginaAtual != null){
-                paginaAtual.remove()
-            }
-            button.id = 'paginaAtual'
-        }
-        aux++
-        if (button.innerText != pagina) {
-            let valorDoMomento = button.innerText
-            button.addEventListener('click', () => {
-                atualizarFiltros(valorDoMomento)
-            })
-        }
-        li.appendChild(button)
-        ul.appendChild(li)
-    }
-
-    li = document.createElement('li')
-    button = document.createElement('button')
-    button.addEventListener('click', () => {
-        atualizarFiltros(pagina + 1)
-    }) 
-    button.innerText = '>'
-    button.classList.add('setas')
-    li.appendChild(button)
-    ul.appendChild(li)
-
-    if (totalDePaginas == 1) {
-        document.querySelector('.setas').remove()
-        document.querySelector('.setas').remove()
-    }
-}
-
-function removerListas() {
-    document.querySelector('ul').remove()
-    document.querySelector('ul').remove()
-}
-
-function openDialog() {
-    let dialog = document.querySelector('#dialog')
-    dialog.showModal()
-}
-
-function closeDialog() {
-    let dialog = document.querySelector('#dialog')
-    dialog.close()
-}
+document.addEventListener('DOMContentLoaded', () => {
+    filtros();
+    contarFiltrosAtivos();
+    logNoticias();
+});
