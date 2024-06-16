@@ -1,25 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
+    <title>Prova Sugundo Bimestre</title>
     <link rel="stylesheet" href="style.css">
     <script src="script.js"></script>
 </head>
+
 <body>
+
     <header>
-        <h1>Estados do Brasil</h1>
-        <a href="./so-as-melhores/melhores-cidades.html" id="tabela">Tabela</a>
-        <a href="./favoritos/index.html">Ver favoritos</a>
+        <h1>Portal de Notícias do Ibge</h1>
+        <form action="" id="formulárioDeBusca" onsubmit="event.preventDefault(); atualizarFiltros('')">
+            <input type="text" value="" id="barraDePesquisa" placeholder="buscar notícia por termo">
+            <button type="submit" id="lupa">🔍</button>
+        </form>
+        <div id="filtro">
+            <svg id="filtroBotao" width="20" height="20" fill="#f0f0f0" viewBox="0 0 80 90" focusable="false"
+                xmlns="http://www.w3.org/2000/svg" onclick="openDialog()">
+                <path d="m 0,0 30,45 0,30 10,15 0,-45 30,-45 Z"></path>
+            </svg>
+            <span id="spanFiltro">(0)</span>
+        </div>
     </header>
+
     <main>
-        <div id="lista">
-            <ul id="lista-de-estados">
+
+        <dialog id="dialog">
+            <form method="dialog">
+
+                <div class="divDialog">
+                    <label for="tipo">Tipo:</label>
+                    <select name="tipo" id="tipo" class="filtros">
+                        <option value="">Selecione</option>
+                        <option value="noticia">Notícia</option>
+                        <option value="release">Release</option>
+                    </select>
+
+                    <label for="qtd">Quantidade:</label>
+                    <select name="quantidade" id="qtd" class="filtros">
+                        <option value="10">10</option>
+                        <option value="15">15</option>
+                        <option value="20">20</option>
+                        <option value="25">25</option>
+                        <option value="30">30</option>
+                    </select>
+                </div>
+
+                <div class="divDialog">
+                    <label for="de">De:</label>
+                    <input type="date" id="de" name="de" class="filtros">
+
+                    <label for="até">Até:</label>
+                    <input type="date" id="até" name="até" class="filtros">
+                </div>
+
+                <button type="submit" id="applyFiltersButton" onclick="atualizarFiltros('')" class="filtros">Aplicar</button>
+                <button type="reset" id="resetFiltersButton" class="filtros">Limpar filtros</button>
+            </form>
+            <button id="closeButton" onclick="closeDialog()">X</button>
+        </dialog>
+
+        <div id="conteúdo">
+            <ul id="listaDeNoticias">
             </ul>
         </div>
+
+        <div id="paginacao">
+            <ul id="listaDePaginas">
+            </ul>
+            <a href="" id="paginaAtual">1</a>
+        </div>
+
     </main>
-    <footer>&copy; 2024 Prova de Programação Web</footer>
+
+    <footer>
+        <p>&copy; Prova do segundo bimestre</p>
+    </footer>
+    <script>
+        atualizarFiltros('')
+    </script>
 </body>
-<script></script>
+
 </html>
